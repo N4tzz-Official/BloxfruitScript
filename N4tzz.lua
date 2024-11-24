@@ -1,12 +1,15 @@
+-- [ Bloxfruit Script By N4tzzSquadCommunity ]
+
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local player = game.Players.LocalPlayer
-local mouse = player:GetMouse()
+local Players = game:GetService("Players")
+local player = Players.LocalPlayer
 local gui = Instance.new("ScreenGui")
 gui.Parent = player:WaitForChild("PlayerGui")
 
 local function antiDie()
     local character = player.Character or player.CharacterAdded:Wait()
     local humanoid = character:WaitForChild("Humanoid")
+
     humanoid.HealthChanged:Connect(function(health)
         if health <= 0 then
             humanoid.Health = 100
@@ -14,114 +17,105 @@ local function antiDie()
     end)
 end
 
+local function teleportToPosition(position)
+    local character = player.Character or player.CharacterAdded:Wait()
+    if character.PrimaryPart then
+        character:SetPrimaryPartCFrame(CFrame.new(position))
+    else
+        warn("PrimaryPart not set for the character!")
+    end
+end
+
+local function createButton(parent, text, position, size, callback)
+    local button = Instance.new("TextButton")
+    button.Size = size
+    button.Position = position
+    button.Text = text
+    button.Parent = parent
+    button.MouseButton1Click:Connect(callback)
+    return button
+end
+
+local function createTeleportButtons()
+    local positions = {
+        StarterIsland = Vector3.new(100, 100, 100),
+        PirateIsland = Vector3.new(300, 100, 200),
+        JungleIsland = Vector3.new(500, 100, 500)
+    }
+
+    local yOffset = 70
+    for name, position in pairs(positions) do
+        createButton(
+            gui,
+            "Teleport to " .. name,
+            UDim2.new(0, 10, 0, yOffset),
+            UDim2.new(0, 200, 0, 50),
+            function() teleportToPosition(position) end
+        )
+        yOffset = yOffset + 60
+    end
+end
+
 local function handleCommands(commandText)
     local args = commandText:split(" ")
     if args[1] == "/f" then
         local fruitType = args[2] or "None"
         local useMaxMastery = args[3] == "max"
-        activateFruit(fruitType, useMaxMastery)
+        print("Activating fruit: " .. fruitType)
+        if useMaxMastery then
+            print("Maximizing mastery for " .. fruitType)
+        end
     elseif args[1] == "/tp" then
         local targetPlayerName = args[2]
-        teleportToPlayer(targetPlayerName)
-    end
-end
-
-local function activateFruit(fruitType, maxMastery)
-    print("Activating fruit: " .. fruitType)
-    if maxMastery then
-        print("Maximizing mastery for " .. fruitType)
-    end
-end
-
-local function teleportToPlayer(playerName)
-    local targetPlayer = game.Players:FindFirstChild(playerName)
-    if targetPlayer then
-        local targetCharacter = targetPlayer.Character
-        if targetCharacter and targetCharacter:FindFirstChild("HumanoidRootPart") then
-            teleportToPosition(targetCharacter.HumanoidRootPart.Position)
+        local targetPlayer = Players:FindFirstChild(targetPlayerName)
+        if targetPlayer and targetPlayer.Character and targetPlayer.Character:FindFirstChild("HumanoidRootPart") then
+            teleportToPosition(targetPlayer.Character.HumanoidRootPart.Position)
         else
-            print("Target player has no valid character.")
+            warn("Player not found or invalid character!")
         end
     else
-        print("Player not found.")
+        warn("Unknown command: " .. args[1])
     end
-end
-
-local function teleportToPosition(position)
-    local character = player.Character or player.CharacterAdded:Wait()
-    character:SetPrimaryPartCFrame(CFrame.new(position))
-end
-
-local function setBoatSpeed(speed)
-    local boat = workspace:FindFirstChild("Boat")
-    if boat then
-        boat.Velocity = Vector3.new(speed, 0, speed)
-    else
-        print("Boat not found.")
-    end
-end
-
-local function displayStatsVisual()
-    local stats = Instance.new("BillboardGui")
-    stats.Size = UDim2.new(0, 200, 0, 50)
-    stats.Adornee = player.Character:WaitForChild("Head")
-    stats.Parent = player.PlayerGui
-
-    local healthLabel = Instance.new("TextLabel")
-    healthLabel.Text = "Health: " .. player.Character.Humanoid.Health
-    healthLabel.Size = UDim2.new(1, 0, 0, 25)
-    healthLabel.BackgroundTransparency = 1
-    healthLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-    healthLabel.Parent = stats
-
-    local levelLabel = Instance.new("TextLabel")
-    levelLabel.Text = "Level: " .. player.Data.Level
-    levelLabel.Size = UDim2.new(1, 0, 0, 25)
-    levelLabel.Position = UDim2.new(0, 0, 0.5, 0)
-    levelLabel.BackgroundTransparency = 1
-    levelLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-    levelLabel.Parent = stats
-end
-
-local function createTeleportButtons()
-    local starterIslandButton = Instance.new("TextButton")
-    starterIslandButton.Size = UDim2.new(0, 200, 0, 50)
-    starterIslandButton.Position = UDim2.new(0, 10, 0, 70)
-    starterIslandButton.Text = "Teleport to Starter Island"
-    starterIslandButton.Parent = gui
-    starterIslandButton.MouseButton1Click:Connect(function()
-        teleportToPosition(Vector3.new(100, 100, 100))
-    end)
-end
-
-local function adminCommands()
-    local commandBox = Instance.new("TextBox")
-    commandBox.Size = UDim2.new(0, 200, 0, 50)
-    commandBox.Position = UDim2.new(0, 10, 0, 190)
-    commandBox.Text = "Enter Command"
-    commandBox.Parent = gui
-    commandBox.FocusLost:Connect(function(enterPressed)
-        if enterPressed then
-            local command = commandBox.Text
-            handleCommands(command)
-        end
-    end)
 end
 
 local function createAdminInterface()
-    local adminButton = Instance.new("TextButton")
-    adminButton.Size = UDim2.new(0, 200, 0, 50)
-    adminButton.Position = UDim2.new(0, 10, 0, 310)
-    adminButton.Text = "Admin Command Box"
-    adminButton.Parent = gui
-    adminButton.MouseButton1Click:Connect(function()
-        adminCommands()
+    local commandBox = Instance.new("TextBox")
+    commandBox.Size = UDim2.new(0, 200, 0, 50)
+    commandBox.Position = UDim2.new(0, 10, 0, 250)
+    commandBox.PlaceholderText = "Enter Command"
+    commandBox.Text = ""
+    commandBox.Parent = gui
+
+    commandBox.FocusLost:Connect(function(enterPressed)
+        if enterPressed and commandBox.Text ~= "" then
+            handleCommands(commandBox.Text)
+        end
     end)
 end
 
-createTeleportButtons()
-createAdminInterface()
+local function displayStatsVisual()
+    local billboard = Instance.new("BillboardGui")
+    billboard.Size = UDim2.new(0, 200, 0, 50)
+    billboard.Adornee = player.Character:WaitForChild("Head")
+    billboard.Parent = gui
 
+    local healthLabel = Instance.new("TextLabel")
+    healthLabel.Size = UDim2.new(1, 0, 0, 25)
+    healthLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    healthLabel.BackgroundTransparency = 1
+    healthLabel.Text = "Health: " .. player.Character.Humanoid.Health
+    healthLabel.Parent = billboard
+
+    local levelLabel = Instance.new("TextLabel")
+    levelLabel.Size = UDim2.new(1, 0, 0, 25)
+    levelLabel.Position = UDim2.new(0, 0, 0.5, 0)
+    levelLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    levelLabel.BackgroundTransparency = 1
+    levelLabel.Text = "Level: " .. (player:FindFirstChild("Data") and player.Data.Level or "Unknown")
+    levelLabel.Parent = billboard
+end
 
 antiDie()
+createTeleportButtons()
+createAdminInterface()
 displayStatsVisual()
